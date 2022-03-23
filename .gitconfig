@@ -1,0 +1,12 @@
+# PAT: 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
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[credential "https://git.overleaf.com"]
+	username = hunter_nisonoff@berkeley.edu
+	helper = cache
+[user]
+	email = hunternisonoff@gmail.com
+	name = Hunter Nisonoff
