@@ -394,6 +394,9 @@
     (use-package lsp-mode
       :ensure t
       :hook ((python-mode) . lsp-deferred) ; XYZ are to be replaced by python, c++, etc.
+      :config
+      (setq lsp-pylsp-plugins-pydocstyle-ignore ["D100", "D103"])
+      (setq lsp-pylsp-plugins-flake8-ignore ["E501"])
       :commands lsp)
 
     (use-package lsp-ui
@@ -467,7 +470,9 @@
   #+end_src
 * Tramp
   #+begin_src emacs-lisp
-    (setq explicit-shell-file-name "/bin/bash")
+    (if (cl-search "Hunters-MBP" system-name)
+        (setq explicit-shell-file-name "/bin/zsh")
+      (setq explicit-shell-file-name "/bin/bash"))
   #+end_src
 * Anaconda
   #+BEGIN_SRC emacs-lisp
@@ -494,12 +499,16 @@
               (custom-set-variables
                '(conda-anaconda-home (expand-file-name "/anaconda3/"))
                '(conda-env-home-directory (expand-file-name "/anaconda3/")))
+            (if (cl-search "Hunters-MBP" system-name)
+                (custom-set-variables
+                 '(conda-anaconda-home (expand-file-name "~/opt/anaconda3/"))
+                 '(conda-env-home-directory (expand-file-name "~/opt/anaconda3/")))
             ;;; not pascal or beef2
-            (custom-set-variables
-             '(conda-anaconda-home (expand-file-name "~/anaconda3/"))
-             '(conda-env-home-directory (expand-file-name "~/anaconda3/")))
+              (custom-set-variables
+               '(conda-anaconda-home (expand-file-name "~/anaconda3/"))
+               '(conda-env-home-directory (expand-file-name "~/anaconda3/")))
               )
-          )
+          ))
         (conda-env-initialize-interactive-shells)
         (conda-env-autoactivate-mode t)
         (conda-env-initialize-eshell)
@@ -590,3 +599,12 @@
     (add-hook 'python-mode-hook 'yapf-mode)
 
   #+end_src
+
+* Flycheck
+  #+begin_src emacs-lisp
+    (use-package flycheck
+      :ensure t
+      )
+    (global-flycheck-mode)
+  #+end_src
+  
