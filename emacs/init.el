@@ -6,4 +6,3 @@
 
 
 (org-babel-load-file (expand-file-name "~/.emacs.d/myinit.org"))
-(set-face-attribute 'default (selected-frame) :height 200)
