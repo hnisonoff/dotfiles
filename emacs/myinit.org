@@ -1,616 +1,252 @@
 #+STARTUP: overview
-* Packages
+
+* Package Management
   #+BEGIN_SRC emacs-lisp
-    (setq package-archives
-          '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
-            ("MELPA Stable" . "https://stable.melpa.org/packages/")
-            ("MELPA"        . "https://melpa.org/packages/"))
-          package-archive-priorities
-          '(("MELPA Stable" . 0)
-            ("GNU ELPA"     . 5)
-            ("MELPA"        . 10)))
+    ;; Initialize package system
     (require 'package)
+    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
     (package-initialize)
-  #+END_SRC
-* Use Package
-  #+BEGIN_SRC emacs-lisp
+
+    ;; Setup use-package
     (unless (package-installed-p 'use-package)
       (package-refresh-contents)
       (package-install 'use-package))
+    (require 'use-package)
+    (setq use-package-always-ensure t)
   #+END_SRC
-* Interface Changes
+
+* UI and Basic Settings
   #+BEGIN_SRC emacs-lisp
+    ;; Frame size
     (defun get-default-height ()
-           (/ (- (display-pixel-height) 120)
-              (frame-char-height)))
+      "Calculate default frame height based on display size."
+      (/ (- (display-pixel-height) 120)
+         (frame-char-height)))
 
     (add-to-list 'default-frame-alist '(width . 157))
     (add-to-list 'default-frame-alist (cons 'height (get-default-height)))
 
+    ;; Font size
+    (set-face-attribute 'default nil :height 150)
+
+    ;; Basic UI settings
     (fset 'yes-or-no-p 'y-or-n-p)
     (show-paren-mode 1)
     (setq-default indent-tabs-mode nil)
     (setq show-paren-delay 0)
-    ;;(setq make-backup-files nil)
-
-    (setq completion-ignored-extensions '(".a" ".aux" ".bbl" ".blg" ".dvi" ".elc"
-                        ".lof" ".log" ".lot" ".o" ".toc" "~"))
+    (setq ring-bell-function 'ignore)
+    (setq auto-save-default nil)
+    (tool-bar-mode -1)  ;; Disable toolbar
+    
+    ;; Confirm on exit
     (defun ask-before-closing ()
       "Ask whether or not to close, and then close if y was pressed"
       (interactive)
       (if (y-or-n-p (format "Are you sure you want to exit Emacs? "))
-          (if (< emacs-major-version 22)
-              (save-buffers-kill-terminal)
-            (save-buffers-kill-emacs))
+          (save-buffers-kill-emacs)
         (message "Canceled exit")))
 
     (when window-system
       (global-set-key (kbd "C-x C-c") 'ask-before-closing))
-    (setq auto-save-default nil)
-    (setq ring-bell-function 'ignore)
+
+    ;; Window management
     (winner-mode 1)
     (windmove-default-keybindings)
-    (custom-set-variables
-     '(show-paren-mode t)
-     '(tool-bar-mode nil))
-  #+END_SRC
-* Magit
-  #+BEGIN_SRC emacs-lisp
-    (use-package magit
-      :ensure t
-      :bind (("C-x g" . magit-status)))
-  #+END_SRC  
-* Paths
-  #+BEGIN_SRC emacs-lisp
-    (add-to-list 'load-path "~/.emacs.d/elpa")
 
-    (global-set-key [remap dabbrev-expand] 'hippie-expand)
-
-    (setq ring-bell-function 'ignore)
-    (winner-mode 1)
-    (windmove-default-keybindings)
-  #+END_SRC  
-* Dired
-  #+BEGIN_SRC emacs-lisp
-    (setq dired-listing-switches "-alh")
-  #+END_SRC  
-* Yasnippet
-  #+BEGIN_SRC emacs-lisp
-    (use-package yasnippet
-      :ensure t
-      :init
-        (yas-global-mode 1))  
-  #+END_SRC
-* Swiper
-  #+BEGIN_SRC emacs-lisp
-    (use-package counsel
-      :ensure t
-      )
-
-    (use-package swiper
-      :ensure t
-      :config
-      (progn
-        (ivy-mode 1)
-        (setq ivy-use-virtual-buffers t)
-        (global-set-key "\C-s" 'swiper)
-        (global-set-key (kbd "C-c C-r") 'ivy-resume)
-        (global-set-key (kbd "<f6>") 'ivy-resume)
-        (global-set-key (kbd "M-x") 'counsel-M-x)
-        (global-set-key (kbd "C-x C-f") 'counsel-find-file)
-        (global-set-key (kbd "<f1> f") 'counsel-describe-function)
-        (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
-        (global-set-key (kbd "<f1> l") 'counsel-load-library)
-        (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
-        (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
-        (global-set-key (kbd "C-c g") 'counsel-git)
-        (global-set-key (kbd "C-c j") 'counsel-git-grep)
-        (global-set-key (kbd "C-c k") 'counsel-ag)
-        (global-set-key (kbd "C-x l") 'counsel-locate)
-        (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
-        (define-key read-expression-map (kbd "C-r") 'counsel-expression-history)
-        ))
-  #+END_SRC
-* Paragraph Fill
-  #+BEGIN_SRC emacs-lisp
-	(defun refill-paragraphs-to-be-one-line ()
-	  "fill individual paragraphs with large fill column"
-	  (interactive)
-	  (let ((fill-column 100000))
-		(fill-individual-paragraphs (point-min) (point-max))))
-  #+END_SRC
-* Ibuffer
-  #+BEGIN_SRC emacs-lisp
-	(global-set-key (kbd "C-x C-b") 'ibuffer)
-	(setq ibuffer-saved-filter-groups
-		  (quote (("default"
-			   ("dired" (mode . dired-mode))
-			   ("org" (name . "^.*org$"))
-			   ("shell" (or (mode . eshell-mode) (mode . shell-mode)))
-			   ("programming" (or
-					   (mode . python-mode)
-					   (mode . c++-mode)))
-			   ("ein" (or 
-					   (name . "^\\*ein: https:*")
-					   (name . "^\\*ein:notebooklist*")
-					   ))
-			   ("htop" (name . "^htop*"))
-			   ("jupyter" (name . "^jupyter*"))
-			   ("emacs" (or
-				 (name . "^\\*scratch\\*$")
-				 (name . "^\\*Messages\\*$")))
-			   ))))
-	(add-hook 'ibuffer-mode-hook
-		  (lambda ()
-			(ibuffer-auto-mode 1)
-			(ibuffer-switch-to-saved-filter-groups "default")))
-	;; nearly all of this is the default layout
-	(setq ibuffer-formats 
-		  '((mark modified read-only " "
-				  (name 65 65 :left :elide) ; change: 65s were originally 18s
-				  " "
-				  (size 9 -1 :right)
-				  " "
-				  (mode 16 16 :left :elide)
-				  " " filename-and-process)
-			(mark " "
-				  (name 16 -1)
-				  " " filename)))
-	;; don't show these
-						;(add-to-list 'ibuffer-never-show-predicates "zowie")
-	;; Don't show filter groups if there are no buffers in that group
-	(setq ibuffer-show-empty-filter-groups nil)
-
-	;; Don't ask for confirmation to delete marked buffers
-	(setq ibuffer-expert t)
-  #+END_SRC
-* Git-gutter
-  #+BEGIN_SRC emacs-lisp
-	(use-package git-gutter
-	  :ensure t
-	  :config
-	  (progn
-		(global-git-gutter-mode +1)
-		(global-git-gutter-mode t)
-
-		(global-set-key (kbd "C-x C-g") 'git-gutter)
-		(global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
-
-		;; Jump to next/previous hunk
-		(global-set-key (kbd "C-x p") 'git-gutter:previous-hunk)
-		(global-set-key (kbd "C-x n") 'git-gutter:next-hunk)
-
-		;; Stage current hunk
-		(global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)
-
-		;; Revert current hunk
-		(global-set-key (kbd "C-x v r") 'git-gutter:revert-hunk)
-
-		;; Mark current hunk
-		(global-set-key (kbd "C-x v SPC") #'git-gutter:mark-hunk)	
-	)
-	)
-  #+END_SRC
-* Which-key
-  #+BEGIN_SRC emacs-lisp
-	(use-package which-key
-	  :ensure t
-	  :config 
-	  (which-key-mode)
-	  )
-  #+END_SRC
-* Swith-remote
-  #+BEGIN_SRC emacs-lisp
-    (defun switch-remote ()
-      "Ask whether or not to close, and then close if y was pressed"
-      (interactive)
-      (let* ((file (dired-copy-filename-as-kill)))
-	    (find-file (concat "/ssh:nisonoff@enavxlogin4.en.desres.deshaw.com:" file))))
-
-
-    (global-set-key (kbd "C-c r") 'switch-remote)
-
+    ;; File and buffer settings
+    (setq completion-ignored-extensions 
+          '(".a" ".aux" ".bbl" ".blg" ".dvi" ".elc"
+            ".lof" ".log" ".lot" ".o" ".toc" "~"))
   #+END_SRC
 
-* Nsh
-  #+BEGIN_SRC emacs-lisp
-	;; Emacs, please load my new powerful nsh function
-	(add-to-list 'load-path "~/.emacs.d/huntercode")
-	(require 'nsh)
-  #+END_SRC
-* Zenburn
+* Theme
   #+BEGIN_SRC emacs-lisp
     (use-package zenburn-theme
-      :ensure t
       :config
       (load-theme 'zenburn t))
-
-
-    ;; (use-package modus-operandi-theme
-    ;;   :ensure t)
-
-    ;; (use-package modus-vivendi-theme
-    ;;   :ensure t)
-    ;; ;;(load-theme 'modus-vivendi t)
-    ;; (load-theme 'modus-operandi t)
-
   #+END_SRC
 
-* Auctex
+* Navigation and Search
   #+BEGIN_SRC emacs-lisp
-    (use-package tex-mode
-      :ensure auctex
-    )
+    ;; Ivy, Counsel, and Swiper setup
+    (use-package ivy
+      :diminish
+      :config
+      (ivy-mode 1)
+      (setq ivy-use-virtual-buffers t))
+
+    (use-package counsel
+      :after ivy
+      :bind (("M-x" . counsel-M-x)
+             ("C-x C-f" . counsel-find-file)
+             ("C-c g" . counsel-git)
+             ("C-c j" . counsel-git-grep)
+             ("C-c k" . counsel-ag)
+             ("C-x l" . counsel-locate)))
+
+    (use-package swiper
+      :after ivy
+      :bind (("C-s" . swiper)
+             ("C-c C-r" . ivy-resume)
+             ("<f6>" . ivy-resume)))
+
+    ;; Dired enhancements
+    (setq dired-listing-switches "-alh")
+
+    ;; Use ibuffer instead of list-buffers
+    (defalias 'list-buffers 'ibuffer)
   #+END_SRC
 
-* Exec path from shell
+* Development Tools
   #+BEGIN_SRC emacs-lisp
+    ;; Magit for Git
+    (use-package magit
+      :bind (("C-x g" . magit-status)))
+
+    ;; Environment variables from shell
     (use-package exec-path-from-shell
-      :ensure t
-      :init 
-      (when (memq window-system '(mac ns))
-      (exec-path-from-shell-initialize)))
-
-  #+END_SRC
-* Unfill paragraph
-  #+BEGIN_SRC emacs-lisp
-    (defun unfill-paragraph (&optional region)
-      "Takes a multi-line paragraph and makes it into a single line of text."
-      (interactive (progn (barf-if-buffer-read-only) '(t)))
-      (let ((fill-column (point-max))
-	    ;; This would override `fill-column' if it's an integer.
-	    (emacs-lisp-docstring-fill-column t))
-	(fill-paragraph nil region)))
-    (define-key global-map "\M-Q" 'unfill-paragraph)
-  #+END_SRC
-* Julia
- #+BEGIN_SRC emacs-lisp
-   (use-package julia-mode
-     :ensure t
-     )
-     (add-to-list 'auto-mode-alist '("\\.julia$" . julia-mode))
-     (add-to-list 'auto-mode-alist '("\\.jl$" . julia-mode))
-
-  #+END_SRC
-* Access init file
-  #+BEGIN_SRC emacs-lisp
-  (defun access-init ()
-      (interactive)
-      (find-file "/Users/hunternisonoff/.emacs.d/myinit.org"))
-    (global-set-key (kbd "C-c i") 'access-init)
-  #+END_SRC
-* Shell Name
-  #+BEGIN_SRC emacs-lisp
-    (defun shell-name (nsh-name)
-      (interactive "Mshell name: ")
-      (shell (concat "shell-" nsh-name)))
-    (global-set-key (kbd "C-c t") 'shell-name)
-  #+END_SRC
-* Savio
-    #+BEGIN_SRC emacs-lisp
-      (defun access-savio ()
-        (interactive)
-        (find-file "/ssh:hunter_nisonoff@hpc.brc.berkeley.edu:~"))
-      (global-set-key (kbd "C-c s") 'access-savio)
-
-
-
-      (defun access-savio ()
-        (interactive)
-        (find-file "/ssh:hunter_nisonoff@hpc.brc.berkeley.edu:~"))
-      (global-set-key (kbd "C-c s") 'access-savio)
-
-      (defun access-savio-scratch ()
-        (interactive)
-        (find-file "/ssh:hunter_nisonoff@hpc.brc.berkeley.edu:/global/scratch/hunter_nisonoff"))
-      (global-set-key (kbd "C-c w") 'access-savio-scratch)
-
-
-
-  #+END_SRC
-
-* Python Tab
-  #+BEGIN_SRC emacs-lisp
-  (add-hook 'python-mode-hook
-      (lambda ()
-        (setq indent-tabs-mode 'nil)
-        (setq tab-width 4)
-        (setq python-indent-offset 4)))
-  #+END_SRC
-* HP Server
-  #+BEGIN_SRC emacs-lisp
-  (defun hpserver ()
-  (interactive)
-  (find-file "/ssh:hunter_nisonoff@beef2.bair.berkeley.edu:/home/hunter_nisonoff"))
-  (global-set-key (kbd "C-c h") 'hpserver)
-  
-  
-  #+END_SRC
-* Font Bigger
-  #+BEGIN_SRC emacs-lisp
-  (set-face-attribute 'default nil :height 150)
-  ;;(set-face-attribute 'default nil :height 150)
-  #+END_SRC
-* Ipython
-  #+BEGIN_SRC emacs-lisp
-    (when (executable-find "ipython")
-      (setq python-shell-interpreter "ipython"))
-
-    (require 'python)
-    (setq python-shell-interpreter "ipython")
-    ;;(setq python-shell-interpreter-args "--pylab")
-    (setq python-shell-interpreter "ipython"
-	  python-shell-interpreter-args "--simple-prompt -i")
-  #+END_SRC
-* ESS
-  #+BEGIN_SRC emacs-lisp
-    (use-package ess
-      :ensure t
+      :if (memq window-system '(mac ns))
       :config
-      (require 'ess-r-mode)
-      :bind 
-      (:map ess-mode-map
-            (";" . ess-insert-assign))
-      (:map inferior-ess-mode-map
-            (";" . ess-insert-assign)))
+      (exec-path-from-shell-initialize))
 
-    (defun then_R_operator ()
-      "%>% operator or 'then' pipe operator"
-      (interactive)
-      (insert " %>%") ; note the space before the first %
-      (reindent-then-newline-and-indent))
-    (global-set-key (kbd "C-\\") 'then_R_operator)
+    ;; Python configuration
+    (add-hook 'python-mode-hook
+              (lambda ()
+                (setq indent-tabs-mode nil
+                      tab-width 4
+                      python-indent-offset 4)))
   #+END_SRC
-* Emacs Ipython Notebook
-  #+BEGIN_SRC emacs-lisp
-    (use-package ein
-      :ensure t
-    )
-    (setq ein:output-area-inlined-images t)
-    ;; (custom-set-variables
-    ;;  '(ein:output-area-inlined-images t))
-  #+END_SRC    
-* Eglot
-  #+BEGIN_SRC emacs-lisp
-    (use-package eglot
-      :ensure t
-    )
 
-  #+END_SRC
-* Command is meta
+* IDO Mode Configuration
   #+BEGIN_SRC emacs-lisp
-  (setq mac-option-modifier 'meta)
-  (setq mac-command-modifier 'meta)
-  #+END_SRC
-* SCF Cluster
-  #+begin_src emacs-lisp
-    (defun scfcluster ()
-      (interactive)
-      (find-file "/ssh:hunter_nisonoff@radagast.berkeley.edu:")
-    )
-  #+end_src
-* LSP Mode
-  #+BEGIN_SRC emacs-lisp
-    (use-package lsp-mode
-      :ensure t
-      :hook ((python-mode) . lsp-deferred) ; XYZ are to be replaced by python, c++, etc.
-      :config
-      (setq lsp-pylsp-plugins-pydocstyle-ignore ["D100", "D103"])
-      (setq lsp-pylsp-plugins-flake8-ignore ["E501"])
-      :commands lsp)
-
-    (use-package lsp-ui
-      :ensure t
-      :commands lsp-ui-mode)
-
-    (use-package lsp-ui
-      :commands lsp-ui-mode
-      :ensure t
-      :config
-      (setq lsp-ui-doc-enable nil)
-      (setq lsp-ui-doc-header t)
-      (setq lsp-ui-doc-include-signature t)
-      (setq lsp-ui-doc-border (face-foreground 'default))
-      (setq lsp-ui-sideline-show-code-actions t)
-      (setq lsp-ui-sideline-delay 0.05))
-
-    (use-package lsp-ivy
-      :ensure t)
-
-    (use-package company
-      :ensure t
-      :after lsp-mode
-      :hook (lsp-mode . company-mode)
-      :bind (:map company-active-map
-             ("<tab>" . company-complete-selection))
-            (:map lsp-mode-map
-             ("<tab>" . company-indent-or-complete-common))
-      :custom
-      (company-minimum-prefix-length 1)
-      (company-idle-delay 0.0))
-
-    (use-package company-box
-      :ensure t
-      :hook (company-mode . company-box-mode))
-  #+END_SRC
-* Org Mode
-  #+begin_src emacs-lisp
-    (setq org-agenda-files '("~/.emacs.d/orgfiles/work.org"
-                                    "~/.emacs.d/orgfiles/private.org"))
-    (defun org-focus-private() "Set focus on private things."
-           (interactive)
-           (setq org-agenda-files '("~/.emacs.d/orgfiles/private.org")))
-    (defun org-focus-work() "Set focus on work things."
-           (interactive)
-           (setq org-agenda-files '("~/.emacs.d/orgfiles/work.org")))
-    (defun org-focus-all() "Set focus on all things."
-           (interactive)
-           (setq org-agenda-files '("~/.emacs.d/orgfiles/work.org"
-                                    "~/.emacs.d/orgfiles/private.org")))
-    (custom-set-variables
-     '(org-capture-templates
-          '(("b" "Add book to read" entry (file+headline "~/.emacs.d/orgfiles/private.org" "Books to read")
-             (file "~/.emacs.d/orgfiles/tpl-book.txt")
-             :empty-lines-after 2)
-            ("p" "Add paper to read" entry (file+headline "~/.emacs.d/orgfiles/work.org" "Papers To Read")
-             (file "~/.emacs.d/orgfiles/tpl-papers.txt"))
-            ("i" "Add research idea" entry (file+headline "~/.emacs.d/orgfiles/work.org" "Research Ideas")
-             (file "~/.emacs.d/orgfiles/tpl-idea.txt"))
-            ("t" "Add todo" entry (file "~/.emacs.d/orgfiles/capture.org")
-             (file "~/.emacs.d/orgfiles/tpl-task.txt"))
-            ("c" "Add code" entry (file "~/.emacs.d/orgfiles/code.org")
-             (file "~/.emacs.d/orgfiles/tpl-code.txt"))
-            ))
-     '(org-directory "~/.emacs.d/orgfiles/")
-     '(org-outline-path-complete-in-steps nil)
-     '(org-refile-allow-creating-parent-nodes t)
-     '(org-refile-targets '((org-agenda-files :maxlevel . 2)))
-     '(org-refile-use-outline-path 'file)
-     )
-  #+end_src
-* Tramp
-  #+begin_src emacs-lisp
-    (if (cl-search "Hunters-MBP" system-name)
-        (setq explicit-shell-file-name "/bin/zsh")
-      (setq explicit-shell-file-name "/bin/bash"))
-  #+end_src
-* Anaconda
-  #+BEGIN_SRC emacs-lisp
-    (use-package anaconda-mode
-      :ensure t
-      :commands anaconda-mode
-      :diminish anaconda-mode
-      :init
-      (progn
-	(add-hook 'python-mode-hook 'anaconda-mode)
-	(add-hook 'python-mode-hook 'eldoc-mode)))
-  #+END_SRC
-  #+BEGIN_SRC emacs-lisp
-    (use-package conda
-      :ensure t
-      :init
-      (progn
-        (require 'conda)
-        (if (cl-search "pascal" system-name)
-            (custom-set-variables
-             '(conda-anaconda-home (expand-file-name "/usr/workspace/nisonoff/anaconda3/"))
-             '(conda-env-home-directory (expand-file-name "/usr/workspace/nisonoff/anaconda3/")))
-          (if (cl-search "beef2" system-name)
-              (custom-set-variables
-               '(conda-anaconda-home (expand-file-name "/anaconda3/"))
-               '(conda-env-home-directory (expand-file-name "/anaconda3/")))
-            (if (cl-search "Hunters-MBP" system-name)
-                (custom-set-variables
-                 '(conda-anaconda-home (expand-file-name "~/opt/anaconda3/"))
-                 '(conda-env-home-directory (expand-file-name "~/opt/anaconda3/")))
-            ;;; not pascal or beef2
-              (custom-set-variables
-               '(conda-anaconda-home (expand-file-name "~/anaconda3/"))
-               '(conda-env-home-directory (expand-file-name "~/anaconda3/")))
-              )
-          ))
-        (conda-env-initialize-interactive-shells)
-        (conda-env-autoactivate-mode t)
-        (conda-env-initialize-eshell)
-        ))
-    ;;(setq conda-env-home-directory (expand-file-name "~/anaconda3/"))
-  #+END_SRC
-* Elisp
-  #+begin_src emacs-lisp
-  ;;(require 'ielm)
-  ;;(add-hook 'emacs-lisp-mode-hook 'ielm-auto-complete)
-  #+end_src
-* Ido Mode (Overriden by Swiper)
-  #+BEGIN_SRC emacs-lisp
+    ;; Note: These settings are partially overridden by Ivy mode
+    ;; Consider removing this section if you prefer Ivy/Counsel
     (ido-mode 1)
     (setq ido-enable-flex-matching t)
     (setq ido-everywhere t)
-    (defalias 'list-buffers 'ibuffer)
+
+    ;; Custom binding to convert list-directory to dired
+    (defun ido-dired-from-list-directory ()
+      "Convert list-directory to dired using ido."
+      (interactive)
+      (let ((dir default-directory))
+        (kill-buffer)
+        (ido-dired dir)))
   #+END_SRC
-* ShellCheck
-  #+begin_src emacs-lisp
-  (add-hook 'sh-mode-hook 'flycheck-mode)
-  #+end_src
-* PDF TOols
-  #+begin_src emacs-lisp
-    ;; (if (cl-search "pascal" system-name)
-    ;;     ()
-    ;;   (if (cl-search "beef2" system-name)
-    ;;       ()
-    ;;     ;;; if not in pascal or beef
-    ;;     (use-package pdf-tools
-    ;;       :ensure t
-    ;;       :pin manual ;; don't reinstall when package updates
-    ;;       :mode  ("\\.pdf\\'" . pdf-view-mode)
-    ;;       :config
-    ;;       ;;(setq-default pdf-view-display-size 'fit-page)
-    ;;       (setq pdf-annot-activate-created-annotations t)
-    ;;       (pdf-tools-install :no-query)
-    ;;       (setq pdf-view-use-scaling t
-    ;;             pdf-view-use-imagemagick nil)
-    ;;       (require 'pdf-occur))))
-  #+end_src
-* Copy Remote Emacs
+* Conda
+#+begin_src emacs-lisp
+  (use-package conda
+    :ensure t
+    :init
+    (setq conda-anaconda-home "/Users/hunternisonoff/miniforge3")
+    :config
+    (conda-env-initialize-interactive-shells)
+    (conda-env-initialize-eshell)
+    (conda-env-autoactivate-mode t)
+    :bind
+    (("C-c C-e a" . conda-env-activate)
+     ("C-c C-e d" . conda-env-deactivate)
+     ("C-c C-e l" . conda-env-list)))
+#+end_src
+* Emacs Ipython
+#+begin_src emacs-lisp
+  (use-package ein
+    :ensure t
+  )
+  (setq ein:output-area-inlined-images t)
+#+end_src
+* Eglot
+#+begin_src emacs-lisp
+  (use-package eglot
+    :ensure t
+    :hook (python-mode . eglot-ensure)
+    :config
+    ;; Block the file watching capability based on the PR discussion
+    (cl-defmethod eglot-client-capabilities :around ((_server eglot-lsp-server) &rest _)
+      "Remove the workspace/didChangeWatchedFiles capability."
+      (let ((caps (cl-call-next-method)))
+        (setf (plist-get (plist-get caps :workspace) :didChangeWatchedFiles) nil)
+        caps))
+
+    ;; Configure Python language servers
+    ;; Installed pyright with: `npm install -g pyright`
+    (add-to-list 'eglot-server-programs
+                 '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio")))
+
+    ;; Keybindings for eglot
+    :bind (:map eglot-mode-map
+           ;; Navigation
+           ("M-." . xref-find-definitions)         ;; Go to definition
+           ("M-?" . xref-find-references)          ;; Find references
+           ("M-," . xref-pop-marker-stack)         ;; Go back
+           ("C-c C-i" . eglot-find-implementation) ;; Find implementation
+           ("C-c C-t" . eglot-find-typeDefinition) ;; Find type definition
+
+           ;; Refactoring
+           ("C-c C-r" . eglot-rename)              ;; Rename symbol
+           ("C-c C-a" . eglot-code-actions)        ;; Code actions
+           ("C-c C-o" . eglot-code-action-organize-imports) ;; Organize imports
+
+           ;; Documentation
+           ("C-c C-d" . eldoc)                     ;; Show documentation
+           ("C-c C-h" . eglot-help-at-point)       ;; Detailed help
+
+           ;; Formatting
+           ("C-c C-f" . eglot-format)              ;; Format buffer
+           ("C-c C-=" . eglot-format-buffer))) 
+  (global-set-key (kbd "C-c f d") 'flymake-show-diagnostics-buffer)
+
+  ;; (use-package eglot
+  ;;   :ensure t
+  ;;   :hook (python-mode . eglot-ensure)
+  ;;   :config
+  ;;   ;; Block the file watching capability based on the PR discussion
+  ;;   (cl-defmethod eglot-client-capabilities :around ((_server eglot-lsp-server) &rest _)
+  ;;     "Remove the workspace/didChangeWatchedFiles capability."
+  ;;     (let ((caps (cl-call-next-method)))
+  ;;       (setf (plist-get (plist-get caps :workspace) :didChangeWatchedFiles) nil)
+  ;;       caps))
+
+  ;;   ;; Configure Python language servers
+  ;;   (add-to-list 'eglot-server-programs
+  ;;                '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))))
+#+end_src
+* Completion
+#+begin_src emacs-lisp
+  (use-package company
+    :ensure t
+    :hook (python-mode . company-mode)
+    :config
+    ;; Quick completion popup
+    (setq company-idle-delay 0.1)
+    
+    ;; Show completions after typing just one character
+    (setq company-minimum-prefix-length 1)
+    
+    ;; Show numbers for quick selection
+    (setq company-show-quick-access t)
+    
+    ;; Wrap around when reaching the end of suggestions
+    (setq company-selection-wrap-around t)
+    
+    ;; Key bindings for completion navigation
+    :bind (:map company-active-map
+           ("C-n" . company-select-next)
+           ("C-p" . company-select-previous)
+           ("TAB" . company-complete-common-or-cycle)
+           ("<tab>" . company-complete-common-or-cycle)))
+#+end_src
+* Python Formatting
+#+begin_src emacs-lisp
+  (use-package python-black
+    :ensure t
+    :after python
+    :hook (python-mode . python-black-on-save-mode))
+#+end_src
+
+* Copy Remote
   #+begin_src emacs-lisp
     (use-package clipetty
       :ensure t
       :hook (after-init . global-clipetty-mode))
-  #+end_src
-* Org Roam
-  #+begin_src emacs-lisp
-    (use-package org-roam
-      :ensure t
-      :init
-      (setq org-roam-v2-ack t)
-      :custom
-      (org-roam-directory "/Users/hunternisonoff/Box Sync/PersonalProjects/orgroam")
-      :bind (("C-c n l" . org-roam-buffer-toggle)
-             ("C-c n f" . org-roam-noad-find)
-             ("C-c n i" . org-roam-noad-insert))
-      :config
-      (org-roam-setup))
-  #+end_src
-
-* Elpy
-  #+begin_src emacs-lisp
-    ;; (use-package elpy
-    ;;   :ensure t
-    ;;   :init
-    ;;   (elpy-enable))
-
-    (setq python-shell-interpreter "ipython"
-          python-shell-interpreter-args "-i --simple-prompt")
-
-    ;; (when (load "flycheck" t t)
-    ;;   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-    ;;   (add-hook 'elpy-mode-hook 'flycheck-mode))
-
-    ;; (add-hook 'elpy-mode-hook (lambda ()
-    ;;                             (add-hook 'before-save-hook
-    ;;                                       'elpy-format-code nil t)))
-  #+end_src
-
-* Yapfify  
-   #+begin_src emacs-lisp
-    (use-package yapfify
-      :ensure t
-      )
-    (add-hook 'python-mode-hook 'yapf-mode)
-
-  #+end_src
-
-* Flycheck
-  #+begin_src emacs-lisp
-    (use-package flycheck
-      :ensure t
-      )
-    (global-flycheck-mode)
-  #+end_src
-  
-* Dap Mode  
-   #+begin_src emacs-lisp
-     (use-package dap-mode
-       :ensure t
-       )
-     (require 'dap-python)
   #+end_src
